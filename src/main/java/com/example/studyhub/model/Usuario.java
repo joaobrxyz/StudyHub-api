@@ -11,6 +11,7 @@ public class Usuario {
     private String nome;
     private String email;
     private String senha;
+    private String role = "USER";
 
     public Usuario() {
     }
@@ -53,4 +54,8 @@ public class Usuario {
     public void setSenha(String senha) {
         this.senha = senha;
     }
+
+    public String getRole() {return role;}
+
+    public void setRole(String role) {this.role = role;}
 }
