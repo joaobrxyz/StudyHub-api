@@ -4,6 +4,9 @@ import com.example.studyhub.model.Questao;
 import com.example.studyhub.model.Dificuldade;
 import com.example.studyhub.repository.QuestaoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -26,7 +29,7 @@ public class QuestaoService {
         return repository.saveAll(questoes);
     }
 
-    public List<Questao> buscarFiltrado(String disciplina, Dificuldade dificuldade, String instituicao, String ano, String termo, Integer page, Integer size ) {
+    public Page<Questao> buscarFiltrado(String disciplina, Dificuldade dificuldade, String instituicao, String ano, String termo, Pageable paginacao) {
         // Cria um objeto Query
         Query query = new Query();
 
@@ -70,19 +73,18 @@ public class QuestaoService {
             query.addCriteria(Criteria.where("enunciado").regex(pattern));
         }
 
-        // Garante que o número da página e o tamanho são válidos
-        int pageNumber = (page != null && page >= 0) ? page : 0;
-        int pageSize = (size != null && size > 0) ? size : 20; // Padrão 20
+        // A) Contar o total de documentos que atendem aos critérios (essencial para metadados da Page)
+        long total = mongoTemplate.count(query, Questao.class);
 
-        // 1. Calcular quantos documentos pular (offset)
-        long skipCount = (long) pageNumber * pageSize;
+        // B) Aplicar os parâmetros de ordenação (sort), skip e limit do Pageable na Query
+        query.with(paginacao);
 
-        // 2. Aplicar SKIP (Pular) e LIMIT (Tamanho da página)
-        query.skip(skipCount);
-        query.limit(pageSize);
+        // C) Executar a busca paginada
+        List<Questao> questoes = mongoTemplate.find(query, Questao.class);
 
-        // Executa a query
-        return mongoTemplate.find(query, Questao.class);
+        // D) Retornar o objeto Page<Questao> completo
+        // PageImpl é a implementação concreta da interface Page.
+        return new PageImpl<>(questoes, paginacao, total);
     }
 
     public Questao buscarPorId(String id) {

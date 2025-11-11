@@ -9,11 +9,15 @@ import com.example.studyhub.service.QuestaoService;
 import com.example.studyhub.service.UsuarioService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.studyhub.model.Questao;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/questoes")
@@ -42,19 +46,18 @@ public class QuestaoController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Questao>> buscarFiltrado(
-            @RequestParam(required = false) String disciplina,
-            @RequestParam(required = false) String dificuldade,
-            @RequestParam(required = false) String instituicao,
-            @RequestParam(required = false) String ano,
-            @RequestParam(required = false) String termo,
+    public ResponseEntity<Page<Questao>> buscarFiltrado(
+                                                         @RequestParam(required = false) String disciplina,
+                                                         @RequestParam(required = false) String dificuldade,
+                                                         @RequestParam(required = false) String instituicao,
+                                                         @RequestParam(required = false) String ano,
+                                                         @RequestParam(required = false) String termo,
 
-            @RequestParam(defaultValue = "0") Integer page, // Padrão: Página 0
-            @RequestParam(defaultValue = "20") Integer size  // Padrão: 20 itens por página
+                                                         @PageableDefault(size = 20, sort = {"enunciado"}) Pageable paginacao
     ) {
         Dificuldade dificuldadeEnum = null;
 
-        // 1. Lógica de Conversão e UPPERCASE
+        // Lógica de Conversão e UPPERCASE
         if (dificuldade != null && !dificuldade.trim().isEmpty()) {
             try {
                 // Converte a string para MAIÚSCULO e depois para o Enum
@@ -64,21 +67,32 @@ public class QuestaoController {
             }
         }
 
-        // 2. Chama o service com o Enum convertido
-        List<Questao> resultado = questaoService.buscarFiltrado(disciplina, dificuldadeEnum, instituicao, ano, termo, page, size);
+        // 2. Chama o service com o objeto Pageable
+        Page<Questao> resultado = questaoService.buscarFiltrado(
+                disciplina,
+                dificuldadeEnum,
+                instituicao,
+                ano,
+                termo,
+                paginacao
+        );
         return ResponseEntity.ok(resultado);
     }
 
     // Buscar questão por ID
     @GetMapping("/{id}")
     public Questao buscarPorId(@PathVariable String id) {
-        return questaoService.buscarPorId(id);
+        var questao = questaoService.buscarPorId(id);
+        if (questao != null) {
+            return questao;
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Questão não encontrada.");
+        }
     }
 
     // Deletar questão por ID
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deletarPorId(@PathVariable String id) {
-
         // Uma linha verifica as duas permissões (401 e 403)
         usuarioService.verificarPermissaoAdmin();
 
