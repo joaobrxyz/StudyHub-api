@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 public class QuestaoService {
@@ -29,61 +30,60 @@ public class QuestaoService {
         return repository.saveAll(questoes);
     }
 
-    public Page<Questao> buscarFiltrado(String disciplina, Dificuldade dificuldade, String instituicao, String ano, String termo, Pageable paginacao) {
-        // Cria um objeto Query
+    public Page<Questao> buscarFiltrado(
+            List<String> disciplinas,
+            List<Dificuldade> dificuldades,
+            List<String> instituicoes,
+            List<String> anos,
+            String termo,
+            Pageable paginacao
+    ) {
         Query query = new Query();
 
-        // Esta expressão regular garante a busca PARCIAL e CASE-INSENSITIVE
-        // Ex: Se o termo for "java", ele busca ".*java.*"
-
-        // 1. FILTRO DE DISCIPLINA (Busca parcial)
-        if (StringUtils.hasText(disciplina)) {
-            Pattern pattern = Pattern.compile(
-                    ".*" + Pattern.quote(disciplina) + ".*",
-                    Pattern.CASE_INSENSITIVE
-            );
-            query.addCriteria(Criteria.where("disciplina").regex(pattern));
+        if (disciplinas != null && !disciplinas.isEmpty()) {
+            addMultiValueStringCriteria(query, "disciplina", disciplinas);
         }
 
-        // 2. FILTRO DE DIFICULDADE (Busca exata, pois é um ENUM)
-        if (dificuldade != null) {
-            query.addCriteria(Criteria.where("dificuldade").is(dificuldade.toString()));
+        // 2. FILTRO DE DIFICULDADE (Busca Exata via $in)
+        if (dificuldades != null && !dificuldades.isEmpty()) {
+            List<String> dificuldadesStr = dificuldades.stream().map(Enum::toString).collect(Collectors.toList());
+            query.addCriteria(Criteria.where("dificuldade").in(dificuldadesStr));
         }
 
-        // 3. FILTRO DE INSTITUIÇÃO (Busca parcial)
-        if (StringUtils.hasText(instituicao)) {
-            Pattern pattern = Pattern.compile(
-                    ".*" + Pattern.quote(instituicao) + ".*",
-                    Pattern.CASE_INSENSITIVE
-            );
-            query.addCriteria(Criteria.where("instituicao").regex(pattern));
+        // 3. FILTRO DE INSTITUIÇÃO (Busca Exata via $in)
+        if (instituicoes != null && !instituicoes.isEmpty()) {
+            addMultiValueStringCriteria(query, "instituicao", instituicoes);
         }
 
-        // 4. FILTRO DE ANO (Busca exata, pois é um valor específico)
-        if (StringUtils.hasText(ano)) {
-            query.addCriteria(Criteria.where("ano").is(ano));
+        // 4. FILTRO DE ANO (Busca Exata via $in)
+        if (anos != null && !anos.isEmpty()) {
+            query.addCriteria(Criteria.where("ano").in(anos));
         }
 
-        // 5. FILTRO DE TERMO (Busca parcial no enunciado)
+        // 5. FILTRO DE TERMO (Busca Parcial e Flexível, ÚNICA que usa regex)
         if (StringUtils.hasText(termo)) {
             Pattern pattern = Pattern.compile(
                     ".*" + Pattern.quote(termo) + ".*",
                     Pattern.CASE_INSENSITIVE
             );
-            query.addCriteria(Criteria.where("enunciado").regex(pattern));
-        }
 
-        // A) Contar o total de documentos que atendem aos critérios (essencial para metadados da Page)
+            // Combinação de critérios OR (Enunciado, Disciplina, Instituição)
+            query.addCriteria(new Criteria().orOperator(
+                    Criteria.where("enunciado").regex(pattern),
+                    Criteria.where("disciplina").regex(pattern),
+                    Criteria.where("instituicao").regex(pattern)
+            ));
+        }
+        // A) Contar o total de documentos que atendem aos critérios
         long total = mongoTemplate.count(query, Questao.class);
 
-        // B) Aplicar os parâmetros de ordenação (sort), skip e limit do Pageable na Query
+        // B) Aplicar os parâmetros de ordenação (sort), skip e limit do Pageable
         query.with(paginacao);
 
         // C) Executar a busca paginada
         List<Questao> questoes = mongoTemplate.find(query, Questao.class);
 
         // D) Retornar o objeto Page<Questao> completo
-        // PageImpl é a implementação concreta da interface Page.
         return new PageImpl<>(questoes, paginacao, total);
     }
 
@@ -97,6 +97,34 @@ public class QuestaoService {
             return ResponseEntity.ok("Questão deletada com sucesso!");
         } else {
             return ResponseEntity.status(404).body("Questão não encontrada!");
+        }
+    }
+
+    private void addMultiValueStringCriteria(
+            Query query,
+            String fieldName,
+            List<String> values
+    ) {
+        if (values != null && !values.isEmpty()) {
+            // Se houver apenas um valor, aplicamos a busca parcial e case-insensitive (regex)
+            if (values.size() == 1) {
+                String value = values.get(0);
+                Pattern pattern = Pattern.compile(".*" + Pattern.quote(value) + ".*", Pattern.CASE_INSENSITIVE);
+                query.addCriteria(Criteria.where(fieldName).regex(pattern));
+                return;
+            }
+
+            // Se houver MÚLTIPLOS VALORES, criamos uma cláusula OR
+            // Ex: (disciplina ~ 'Fisica') OR (disciplina ~ 'Quimica')
+            List<Criteria> orCriteriaList = values.stream()
+                    .map(value -> {
+                        Pattern pattern = Pattern.compile(".*" + Pattern.quote(value) + ".*", Pattern.CASE_INSENSITIVE);
+                        return Criteria.where(fieldName).regex(pattern);
+                    })
+                    .collect(java.util.stream.Collectors.toList());
+
+            // Adiciona o grande OR ao critério principal
+            query.addCriteria(new Criteria().orOperator(orCriteriaList));
         }
     }
 }

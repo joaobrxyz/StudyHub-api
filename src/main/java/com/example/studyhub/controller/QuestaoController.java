@@ -47,30 +47,34 @@ public class QuestaoController {
 
     @GetMapping
     public ResponseEntity<Page<Questao>> buscarFiltrado(
-                                                         @RequestParam(required = false) String disciplina,
-                                                         @RequestParam(required = false) String dificuldade,
-                                                         @RequestParam(required = false) String instituicao,
-                                                         @RequestParam(required = false) String ano,
-                                                         @RequestParam(required = false) String termo,
+            @RequestParam(required = false) List<String> disciplina,     // LISTA
+            @RequestParam(required = false) List<String> dificuldade,    // LISTA
+            @RequestParam(required = false) List<String> instituicao,    // LISTA
+            @RequestParam(required = false) List<String> ano,            // LISTA
+            @RequestParam(required = false) String termo,                 // STRING (Busca Parcial no Enunciado)
 
-                                                         @PageableDefault(size = 20, sort = {"enunciado"}) Pageable paginacao
+            @PageableDefault(size = 20, sort = {"enunciado"}) Pageable paginacao
     ) {
-        Dificuldade dificuldadeEnum = null;
-
-        // Lógica de Conversão e UPPERCASE
-        if (dificuldade != null && !dificuldade.trim().isEmpty()) {
-            try {
-                // Converte a string para MAIÚSCULO e depois para o Enum
-                dificuldadeEnum = Dificuldade.valueOf(dificuldade.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                System.err.println("Dificuldade inválida: " + dificuldade);
-            }
+        // --- Conversão de Dificuldade para Enum ---
+        List<Dificuldade> dificuldadesEnum = null;
+        if (dificuldade != null && !dificuldade.isEmpty()) {
+            dificuldadesEnum = dificuldade.stream()
+                    .map(d -> {
+                        try {
+                            return Dificuldade.valueOf(d.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            System.err.println("Dificuldade inválida: " + d);
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toList());
         }
 
-        // 2. Chama o service com o objeto Pageable
+        // 2. Chama o service com as Listas
         Page<Questao> resultado = questaoService.buscarFiltrado(
                 disciplina,
-                dificuldadeEnum,
+                dificuldadesEnum,
                 instituicao,
                 ano,
                 termo,
