@@ -7,6 +7,7 @@ import java.util.Map;
 import com.example.studyhub.model.Dificuldade;
 import com.example.studyhub.service.QuestaoService;
 import com.example.studyhub.service.UsuarioService;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -102,6 +103,30 @@ public class QuestaoController {
 
         // Se o código chegou aqui, o usuário é autenticado e é ADMIN.
         return questaoService.deletarPorId(id);
+    }
+
+    // Atualizar parcialmente uma questão por ID
+    @PatchMapping("/{id}")
+    public ResponseEntity<Questao> patchQuestao(@PathVariable String id, @RequestBody Map<String, Object> updates) {
+        // 1. Verificar permissão de ADMIN
+        usuarioService.verificarPermissaoAdmin();
+
+        // 2. Chamar o serviço para aplicar as atualizações
+        // As exceções (NOT_FOUND, BAD_REQUEST) lançadas no Service serão
+        // automaticamente tratadas pelo Spring e retornarão o status HTTP correto.
+        Questao questaoAtualizada = questaoService.atualizarParcial(id, updates);
+        return ResponseEntity.ok(questaoAtualizada);
+    }
+
+    @PatchMapping
+    public ResponseEntity<Void> patchQuestoesEmLote(@RequestBody List<Map<String, Object>> listaUpdates) {
+        // 1. Verificar permissão (igual ao seu)
+        usuarioService.verificarPermissaoAdmin();
+
+        // 2. Chamar o serviço de lote
+        questaoService.atualizarEmLote(listaUpdates);
+
+        return ResponseEntity.ok().build(); // Retorna 200 OK sem corpo
     }
 
 }

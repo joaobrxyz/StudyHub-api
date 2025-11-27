@@ -1,11 +1,15 @@
 package com.example.studyhub.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 @Document(collection = "questoes")
 public class Questao {
 
@@ -30,6 +34,7 @@ public class Questao {
     // ESTES CAMPOS SÃO OPCIONAIS E NÃO EXIGEM VALIDAÇÃO:
     private String ano;
     private String instituicao;
+    private List<String> topicos;
 
     public Questao() {}
 
@@ -106,5 +111,13 @@ public class Questao {
 
     public void setInstituicao(String instituicao) {
         this.instituicao = instituicao;
+    }
+
+    public List<String> getTopicos() {
+        return topicos;
+    }
+
+    public void setTopicos(List<String> topicos) {
+        this.topicos = topicos;
     }
 }
