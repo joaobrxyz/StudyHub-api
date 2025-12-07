@@ -1,5 +1,6 @@
 package com.example.studyhub.controller;
 
+import com.example.studyhub.dto.UpdateUserDTO;
 import com.example.studyhub.dto.UserDTO;
 import com.example.studyhub.model.Usuario;
 import com.example.studyhub.service.SimuladoService;
@@ -7,14 +8,12 @@ import com.example.studyhub.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.Map;
 
-@Controller
+@RestController
 @RequestMapping("/user")
 public class UsuarioController {
     @Autowired
@@ -31,7 +30,7 @@ public class UsuarioController {
         long qtdSimulados = simuladoService.contarSimuladosPorUsuario(usuario.getId());
 
         // Mapeia para o DTO de resposta (criaremos no próximo passo)
-        UserDTO response = new UserDTO(usuario.getNome(), usuario.getEmail(), qtdSimulados);
+        UserDTO response = new UserDTO(usuario.getNome(), usuario.getEmail(), qtdSimulados, usuario.getCurso());
 
         return ResponseEntity.ok(response);
     }
@@ -47,5 +46,13 @@ public class UsuarioController {
         // Retorna mensagem de sucesso (e o cliente deve limpar o token)
         Map<String, String> response = Collections.singletonMap("message", "Usuário deletado com sucesso.");
         return ResponseEntity.ok(response);
+    }
+
+    @PutMapping
+    public ResponseEntity<Void> atualizarUsuario(@RequestBody UpdateUserDTO dados) {
+        usuarioService.atualizarDados(dados);
+
+        // Retorna 204 No Content (sucesso, sem corpo de resposta)
+        return ResponseEntity.noContent().build();
     }
 }

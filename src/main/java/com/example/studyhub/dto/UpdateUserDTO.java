@@ -1,8 +1,7 @@
 package com.example.studyhub.dto;
 
-public record UserDTO(
+public record UpdateUserDTO(
         String nome,
         String email,
-        long quantidadeSimulados,
         String curso
 ) {}

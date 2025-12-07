@@ -2,6 +2,7 @@ package com.example.studyhub.service;
 
 import java.util.Optional;
 
+import com.example.studyhub.dto.UpdateUserDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -69,5 +70,35 @@ public class UsuarioService {
             // Se o ID não for encontrado, lança 404
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado.");
         }
+    }
+
+    public Usuario atualizarDados(UpdateUserDTO dadosNovos) {
+        // 1. Obtém o usuário logado (Reutilizando sua lógica segura)
+        Usuario usuario = verificarAutenticacao();
+
+        // 2. Atualiza NOME (se foi enviado e não está vazio)
+        if (dadosNovos.nome() != null && !dadosNovos.nome().isBlank()) {
+            usuario.setNome(dadosNovos.nome());
+        }
+
+        // 3. Atualiza CURSO (se foi enviado e não está vazio)
+        if (dadosNovos.curso() != null && !dadosNovos.curso().isBlank()) {
+            usuario.setCurso(dadosNovos.curso());
+        }
+
+        // 4. Atualiza EMAIL (com verificação extra de segurança)
+        if (dadosNovos.email() != null && !dadosNovos.email().isBlank()) {
+            // Se o e-mail mudou, verifica se já não existe outro usuário com ele
+            if (!dadosNovos.email().equals(usuario.getEmail())) {
+                boolean emailEmUso = repository.findByEmail(dadosNovos.email()).isPresent();
+                if (emailEmUso) {
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Este e-mail já está em uso.");
+                }
+                usuario.setEmail(dadosNovos.email());
+            }
+        }
+
+        // 5. Salva as alterações
+        return repository.save(usuario);
     }
 }

@@ -129,4 +129,10 @@ public class QuestaoController {
         return ResponseEntity.ok().build(); // Retorna 200 OK sem corpo
     }
 
+    @GetMapping("/lista")
+    public ResponseEntity<List<Questao>> buscarPorListaIds(@RequestParam List<String> ids) {
+        List<Questao> questoes = questaoService.buscarPorListaIds(ids);
+        return ResponseEntity.ok(questoes);
+    }
+
 }

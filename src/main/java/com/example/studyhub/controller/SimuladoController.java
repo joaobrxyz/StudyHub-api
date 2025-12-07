@@ -5,19 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.example.studyhub.dto.GerarSimuladoDTO;
 import com.example.studyhub.model.Usuario;
 import com.example.studyhub.service.SimuladoService;
 import com.example.studyhub.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.studyhub.model.Simulado;
 
@@ -64,6 +59,17 @@ public class SimuladoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    @PostMapping("/gerar")
+    public ResponseEntity<Simulado> gerarSimulado(@RequestBody GerarSimuladoDTO dto) {
+        // 1. Pega o usuário logado
+        Usuario usuario = usuarioService.verificarAutenticacao();
+
+        // 2. Gera o simulado
+        Simulado novoSimulado = simuladoService.gerarSimuladoAutomatico(dto, usuario);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(novoSimulado);
+    }
+
     // Buscar simulado por ID
     @GetMapping("/{id}")
     public ResponseEntity<Simulado> buscarPorId(@PathVariable String id) {
@@ -83,6 +89,15 @@ public class SimuladoController {
             // Se o simulado não existe OU se o simulado existe mas não pertence ao usuário: 404
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Void> atualizarSimulado(@PathVariable String id, @RequestBody Simulado simuladoAtualizado) {
+        usuarioService.verificarAutenticacao();
+
+        simuladoService.atualizar(id, simuladoAtualizado);
+
+        return ResponseEntity.noContent().build();
     }
 
     // Deletar simulado por ID

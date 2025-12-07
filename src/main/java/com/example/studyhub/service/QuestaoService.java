@@ -200,4 +200,8 @@ public class QuestaoService {
             }
         }
     }
+
+    public List<Questao> buscarPorListaIds(List<String> ids) {
+        return repository.findAllById(ids);
+    }
 }

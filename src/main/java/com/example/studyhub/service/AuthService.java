@@ -3,8 +3,10 @@ package com.example.studyhub.service;
 import com.example.studyhub.model.Usuario;
 import com.example.studyhub.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -42,6 +44,10 @@ public class AuthService {
 
 
     public Usuario criar(Usuario usuario) {
+        boolean emailEmUso = repository.findByEmail(usuario.getEmail()).isPresent();
+        if (emailEmUso) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Este e-mail já está em uso.");
+        }
         usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
         usuario.setRole("USER");
         return repository.save(usuario);

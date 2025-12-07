@@ -1,5 +1,6 @@
 package com.example.studyhub.model;
 
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -8,10 +9,13 @@ public class Usuario {
 
     @Id
     private String id;
+    @NotBlank(message = "O nome não pode ser vazio.")
     private String nome;
+    @NotBlank(message = "O email não pode ser vazio.")
     private String email;
     private String senha;
     private String role = "USER";
+    private String curso;
 
     public Usuario() {
     }
@@ -58,4 +62,12 @@ public class Usuario {
     public String getRole() {return role;}
 
     public void setRole(String role) {this.role = role;}
+
+    public String getCurso() {
+        return curso;
+    }
+
+    public void setCurso(String curso) {
+        this.curso = curso;
+    }
 }
