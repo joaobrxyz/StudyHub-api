@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Collation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
@@ -40,75 +41,90 @@ public class QuestaoService {
         return repository.saveAll(questoes);
     }
 
-    public Page<Questao> buscarFiltrado(
-            List<String> disciplinas,
-            List<Dificuldade> dificuldades,
-            List<String> instituicoes,
-            List<String> anos,
-            String termo,
-            Pageable paginacao
-    ) {
-        Query query = new Query();
+    public Page<Questao> buscarFiltrado(List<String> disciplinas,
+                                        List<Dificuldade> dificuldades,
+                                        List<String> instituicoes,
+                                        List<String> anos,
+                                        String termo,
+                                        Pageable pageable) {
 
-        // 1. FILTRO DE DISCIPLINA (Agora procura em 'disciplina' OU 'topicos')
+        Query query = new Query().with(pageable);
+
+        // --- COLATION: O Segredo dos Acentos ---
+        // Define a "força" da comparação como PRIMARY.
+        // Isso faz o Mongo ignorar acentos e caixa alta (a == A == á == Á)
+        // OBS: Certifique-se que sua versão do Mongo suporta Collation (3.4+)
+        query.collation(Collation.of("pt").strength(1));
+
+        List<Criteria> criteriosAnd = new ArrayList<>();
+
+        // 1. TERMO DE BUSCA (Busca Geral - Enunciado, Disciplina, Tópicos, Instituição)
+        if (termo != null && !termo.trim().isEmpty()) {
+            String termoLimpo = Pattern.quote(termo.trim());
+            Criteria criteriaTermo = new Criteria().orOperator(
+                    Criteria.where("enunciado").regex(termoLimpo, "i"),
+                    Criteria.where("disciplina").regex(termoLimpo, "i"),
+                    Criteria.where("topicos").regex(termoLimpo, "i"),
+                    Criteria.where("instituicao").regex(termoLimpo, "i")
+            );
+            criteriosAnd.add(criteriaTermo);
+        }
+
+        // 2. FILTRO DE DISCIPLINA (Lista: item1 OU item2 OU item3...)
+        // Verifica: (Disciplina == item) OU (Tópicos contêm item)
         if (disciplinas != null && !disciplinas.isEmpty()) {
-            List<Criteria> orCriteria = new ArrayList<>();
+            List<Criteria> orDisciplinas = new ArrayList<>();
 
             for (String disc : disciplinas) {
-                // Cria o padrão regex (contém, case-insensitive)
-                Pattern pattern = Pattern.compile(".*" + Pattern.quote(disc) + ".*", Pattern.CASE_INSENSITIVE);
+                // Regex flexível para achar trechos (ex: "Matemática" acha "Matemática Aplicada")
+                String regex = Pattern.quote(disc.trim());
 
-                // Adiciona critério para o campo disciplina
-                orCriteria.add(Criteria.where("disciplina").regex(pattern));
-                // Adiciona critério para o campo topicos (MongoDB lida com array automaticamente)
-                orCriteria.add(Criteria.where("topicos").regex(pattern));
+                orDisciplinas.add(new Criteria().orOperator(
+                        Criteria.where("disciplina").regex(regex, "i"),
+                        Criteria.where("topicos").regex(regex, "i")
+                ));
+            }
+            // Adiciona o bloco (A ou B ou C) na lista principal
+            criteriosAnd.add(new Criteria().orOperator(orDisciplinas));
+        }
+
+        // 3. INSTITUIÇÃO (Lista: item1 OU item2...)
+        if (instituicoes != null && !instituicoes.isEmpty()) {
+            List<Criteria> orInstituicoes = new ArrayList<>();
+
+            for (String inst : instituicoes) {
+                // Regex Exato (^...$): Garante que "ENEM" não traga "ENEM PPL" se não quiser
+                // O "i" junto com o Collation garante que maiúsculas/minúsculas não importem
+                String regex = "^" + Pattern.quote(inst.trim()) + "$";
+                orInstituicoes.add(Criteria.where("instituicao").regex(regex, "i"));
             }
 
-            // Adiciona um grande OR: (disciplina ~ Mat OR topicos ~ Mat OR disciplina ~ Fis ...)
-            query.addCriteria(new Criteria().orOperator(orCriteria));
+            criteriosAnd.add(new Criteria().orOperator(orInstituicoes));
         }
 
-        // 2. FILTRO DE DIFICULDADE (Mantém busca exata)
+        // 4. DIFICULDADE (Enum - Valor Exato)
         if (dificuldades != null && !dificuldades.isEmpty()) {
-            List<String> dificuldadesStr = dificuldades.stream().map(Enum::toString).collect(Collectors.toList());
-            query.addCriteria(Criteria.where("dificuldade").in(dificuldadesStr));
+            criteriosAnd.add(Criteria.where("dificuldade").in(dificuldades));
         }
 
-        // 3. FILTRO DE INSTITUIÇÃO (Mantém sua lógica auxiliar original)
-        if (instituicoes != null && !instituicoes.isEmpty()) {
-            addMultiValueStringCriteria(query, "instituicao", instituicoes);
-        }
-
-        // 4. FILTRO DE ANO (Mantém busca exata)
+        // 5. ANO (Valor Exato)
         if (anos != null && !anos.isEmpty()) {
-            query.addCriteria(Criteria.where("ano").in(anos));
+            criteriosAnd.add(Criteria.where("ano").in(anos));
         }
 
-        // 5. FILTRO DE TERMO (Busca geral: Enunciado, Disciplina, Instituição E TÓPICOS)
-        if (StringUtils.hasText(termo)) {
-            Pattern pattern = Pattern.compile(
-                    ".*" + Pattern.quote(termo) + ".*",
-                    Pattern.CASE_INSENSITIVE
+        // --- FINALIZAÇÃO: Junta todos os blocos com AND ---
+        // Exemplo: (Termo) AND (Disciplina A ou B) AND (Instituição X)
+        if (!criteriosAnd.isEmpty()) {
+            Criteria criteriaFinal = new Criteria().andOperator(
+                    criteriosAnd.toArray(new Criteria[0])
             );
-
-            query.addCriteria(new Criteria().orOperator(
-                    Criteria.where("enunciado").regex(pattern),
-                    Criteria.where("disciplina").regex(pattern),
-                    Criteria.where("instituicao").regex(pattern),
-                    Criteria.where("topicos").regex(pattern)
-            ));
+            query.addCriteria(criteriaFinal);
         }
 
-        // A) Contar
-        long total = mongoTemplate.count(query, Questao.class);
-
-        // B) Paginação
-        query.with(paginacao);
-
-        // C) Buscar
+        long count = mongoTemplate.count(Query.of(query).limit(0).skip(0), Questao.class);
         List<Questao> questoes = mongoTemplate.find(query, Questao.class);
 
-        return new PageImpl<>(questoes, paginacao, total);
+        return new PageImpl<>(questoes, pageable, count);
     }
 
     public Questao buscarPorId(String id) {
