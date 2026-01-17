@@ -35,6 +35,8 @@ public class Questao {
     private String ano;
     private String instituicao;
     private List<String> topicos;
+    private String resolucaoTexto;
+    private String resolucaoVideoId;
 
     public Questao() {}
 
@@ -119,5 +121,21 @@ public class Questao {
 
     public void setTopicos(List<String> topicos) {
         this.topicos = topicos;
+    }
+
+    public String getResolucaoTexto() {
+        return resolucaoTexto;
+    }
+
+    public void setResolucaoTexto(String resolucaoTexto) {
+        this.resolucaoTexto = resolucaoTexto;
+    }
+
+    public String getResolucaoVideoId() {
+        return resolucaoVideoId;
+    }
+
+    public void setResolucaoVideoId(String resolucaoVideoId) {
+        this.resolucaoVideoId = resolucaoVideoId;
     }
 }

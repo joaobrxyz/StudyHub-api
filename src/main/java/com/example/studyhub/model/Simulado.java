@@ -28,16 +28,22 @@ public class Simulado {
     @NotEmpty(message = "O simulado deve ter questões.")
     private List<String> questoes;
 
+    private boolean publico = false;
+
+    private Dificuldade dificuldade;
+
     public Simulado() {
         this.data = LocalDateTime.now(); // Define a data de criação automaticamente
     }
 
-    public Simulado(String nome, String descricao, String idUser, List<String> questoes) {
+    public Simulado(String nome, String descricao, String idUser, List<String> questoes, boolean publico, Dificuldade dificuldade) {
         this.nome = nome;
         this.descricao = descricao;
         this.data = LocalDateTime.now();
         this.idUser = idUser;
         this.questoes = questoes;
+        this.publico = publico;
+        this.dificuldade = dificuldade;
     }
 
     // --- Getters e Setters ---
@@ -60,4 +66,20 @@ public class Simulado {
 
     public List<String> getQuestoes() { return questoes; }
     public void setQuestoes(List<String> questoes) { this.questoes = questoes; }
+
+    public boolean isPublico() {
+        return publico;
+    }
+
+    public void setPublico(boolean publico) {
+        this.publico = publico;
+    }
+
+    public Dificuldade getDificuldade() {
+        return dificuldade;
+    }
+
+    public void setDificuldade(Dificuldade dificuldade) {
+        this.dificuldade = dificuldade;
+    }
 }

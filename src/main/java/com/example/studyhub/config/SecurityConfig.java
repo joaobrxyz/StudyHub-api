@@ -40,6 +40,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/simulados/**").authenticated()
 
+                        .requestMatchers("/api/pagamentos/webhook").permitAll()
+
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

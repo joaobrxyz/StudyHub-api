@@ -37,6 +37,9 @@ public class QuestaoService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private HistoricoQuestoesService historicoService;
+
     public List<Questao> criarQuestoes(List<Questao> questoes) {
         return repository.saveAll(questoes);
     }
@@ -46,17 +49,36 @@ public class QuestaoService {
                                         List<String> instituicoes,
                                         List<String> anos,
                                         String termo,
+                                        Boolean apenasErros,
+                                        Boolean comResolucao,
+                                        Boolean comVideo,
+                                        String usuarioId,
                                         Pageable pageable) {
 
         Query query = new Query().with(pageable);
 
-        // --- COLATION: O Segredo dos Acentos ---
-        // Define a "força" da comparação como PRIMARY.
-        // Isso faz o Mongo ignorar acentos e caixa alta (a == A == á == Á)
-        // OBS: Certifique-se que sua versão do Mongo suporta Collation (3.4+)
         query.collation(Collation.of("pt").strength(1));
 
         List<Criteria> criteriosAnd = new ArrayList<>();
+
+        // Filtro Premium: Resolução em Texto
+        if (comResolucao) {
+            query.addCriteria(Criteria.where("resolucaoTexto").exists(true).ne(""));
+        }
+
+        // Filtro Premium: Resolução em Vídeo
+        if (comVideo) {
+            query.addCriteria(Criteria.where("resolucaoVideoId").exists(true).ne(""));
+        }
+
+        // Filtro Premium: Apenas Erros
+        if (apenasErros && usuarioId != null) {
+            // 1. Busca no seu HistoricoRepository os IDs das questões que o usuário errou
+            List<String> idsErrados = historicoService.buscarIdsQuestoesErradas(usuarioId);
+
+            // 2. Filtra a busca de questões apenas para esses IDs
+            query.addCriteria(Criteria.where("id").in(idsErrados));
+        }
 
         // 1. TERMO DE BUSCA (Busca Geral - Enunciado, Disciplina, Tópicos, Instituição)
         if (termo != null && !termo.trim().isEmpty()) {

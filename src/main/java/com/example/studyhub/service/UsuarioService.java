@@ -58,6 +58,14 @@ public class UsuarioService {
         return usuario; // Retorna o objeto Usuario
     }
 
+    public Usuario verificarAcessoPremium() {
+        Usuario user = verificarAutenticacao();
+        if (!user.isPremium()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso restrito a usuários Premium.");
+        }
+        return user;
+    }
+
     // Buscar usuário por e-mail
     public Optional<Usuario> buscarPorEmail(String email) {
         return repository.findByEmail(email);

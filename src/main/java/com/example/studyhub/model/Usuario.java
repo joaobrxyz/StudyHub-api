@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Document(collection = "usuarios")
 public class Usuario {
 
@@ -16,6 +19,15 @@ public class Usuario {
     private String senha;
     private String role = "USER";
     private String curso;
+    private boolean premium = false;
+    private LocalDateTime dataFimPremium;
+
+    private String resetToken;
+    private LocalDateTime tokenExpiryDate;
+    private int streakAtual = 0;
+    private LocalDate dataUltimaAtividade;
+    private int simuladosAutomaticosRestantes = 2;
+    private String mesReferenciaLimite;
 
     public Usuario() {
     }
@@ -69,5 +81,69 @@ public class Usuario {
 
     public void setCurso(String curso) {
         this.curso = curso;
+    }
+
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    public LocalDateTime getTokenExpiryDate() {
+        return tokenExpiryDate;
+    }
+
+    public void setTokenExpiryDate(LocalDateTime tokenExpiryDate) {
+        this.tokenExpiryDate = tokenExpiryDate;
+    }
+
+    public int getStreakAtual() {
+        return streakAtual;
+    }
+
+    public void setStreakAtual(int streakAtual) {
+        this.streakAtual = streakAtual;
+    }
+
+    public LocalDate getDataUltimaAtividade() {
+        return dataUltimaAtividade;
+    }
+
+    public void setDataUltimaAtividade(LocalDate dataUltimaAtividade) {
+        this.dataUltimaAtividade = dataUltimaAtividade;
+    }
+
+    public boolean isPremium() {
+        return premium;
+    }
+
+    public void setPremium(boolean premium) {
+        this.premium = premium;
+    }
+
+    public int getSimuladosAutomaticosRestantes() {
+        return simuladosAutomaticosRestantes;
+    }
+
+    public void setSimuladosAutomaticosRestantes(int simuladosAutomaticosRestantes) {
+        this.simuladosAutomaticosRestantes = simuladosAutomaticosRestantes;
+    }
+
+    public String getMesReferenciaLimite() {
+        return mesReferenciaLimite;
+    }
+
+    public void setMesReferenciaLimite(String mesReferenciaLimite) {
+        this.mesReferenciaLimite = mesReferenciaLimite;
+    }
+
+    public LocalDateTime getDataFimPremium() {
+        return dataFimPremium;
+    }
+
+    public void setDataFimPremium(LocalDateTime dataFimPremium) {
+        this.dataFimPremium = dataFimPremium;
     }
 }

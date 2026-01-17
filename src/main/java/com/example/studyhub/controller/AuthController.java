@@ -1,6 +1,8 @@
 package com.example.studyhub.controller;
 
+import com.example.studyhub.dto.EmailRequest;
 import com.example.studyhub.dto.LoginDTO;
+import com.example.studyhub.dto.ResetPasswordRequest;
 import com.example.studyhub.dto.TokenResponseDTO;
 import com.example.studyhub.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,27 @@ public class AuthController {
 
         // 3. Retorna a resposta com o status HTTP 201 Created
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> requestPasswordReset(@RequestBody EmailRequest emailRequest) {
+        service.createPasswordResetToken(emailRequest.email());
+        return ResponseEntity.ok("Se o e-mail estiver cadastrado, você receberá um link de redefinição.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+
+        if (request.newPassword() == null || request.newPassword().length() < 8) {
+            return ResponseEntity.badRequest().body("A nova senha deve ter pelo menos 8 caracteres.");
+        }
+        boolean success = service.resetPassword(request.token(), request.newPassword());
+
+        if (success) {
+            return ResponseEntity.ok("Senha redefinida com sucesso! Você já pode fazer login.");
+        } else {
+            return ResponseEntity.badRequest().body("Link de redefinição inválido ou expirado. Por favor, solicite um novo.");
+        }
     }
 
 }

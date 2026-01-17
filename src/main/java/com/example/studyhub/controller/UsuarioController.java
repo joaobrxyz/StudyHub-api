@@ -30,7 +30,7 @@ public class UsuarioController {
         long qtdSimulados = simuladoService.contarSimuladosPorUsuario(usuario.getId());
 
         // Mapeia para o DTO de resposta (criaremos no próximo passo)
-        UserDTO response = new UserDTO(usuario.getNome(), usuario.getEmail(), qtdSimulados, usuario.getCurso());
+        UserDTO response = new UserDTO(usuario.getNome(), usuario.getEmail(), qtdSimulados, usuario.getCurso(), usuario.getStreakAtual(), usuario.isPremium(), usuario.getDataFimPremium());
 
         return ResponseEntity.ok(response);
     }

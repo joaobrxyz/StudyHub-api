@@ -7,7 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SimuladoRepository extends MongoRepository<Simulado, String> {
-    List<Simulado> findByIdUser(String idUser);
+    List<Simulado> findByIdUserOrderByDataDesc(String idUser);
+    List<Simulado> findByPublicoTrue();
     Optional<Simulado> findByIdAndIdUser(String id, String idUser);
 
     long countByIdUser(String idUser);

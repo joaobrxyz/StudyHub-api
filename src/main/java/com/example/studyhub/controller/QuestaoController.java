@@ -54,8 +54,25 @@ public class QuestaoController {
             @RequestParam(required = false) List<String> ano,            // LISTA
             @RequestParam(required = false) String termo,                 // STRING (Busca Parcial no Enunciado)
 
+            // Filtros premium
+            @RequestParam(required = false, defaultValue = "false") Boolean apenasErros,
+            @RequestParam(required = false, defaultValue = "false") Boolean comResolucao,
+            @RequestParam(required = false, defaultValue = "false") Boolean comVideo,
+
             @PageableDefault(size = 20, sort = {"enunciado"}) Pageable paginacao
     ) {
+        // Verificar se algum filtro premium foi acionado
+        boolean tentandoUsarPremium = apenasErros || comResolucao || comVideo;
+
+        String usuarioId = null;
+
+        if (tentandoUsarPremium) {
+            // Valida se o usuário está logado e se é PREMIUM
+            // Se não for, o próprio service de usuário pode lançar um 403 Forbidden
+            var usuarioLogado = usuarioService.verificarAcessoPremium();
+            usuarioId = usuarioLogado.getId();
+        }
+
         // --- Conversão de Dificuldade para Enum ---
         List<Dificuldade> dificuldadesEnum = null;
         if (dificuldade != null && !dificuldade.isEmpty()) {
@@ -79,6 +96,10 @@ public class QuestaoController {
                 instituicao,
                 ano,
                 termo,
+                apenasErros,
+                comResolucao,
+                comVideo,
+                usuarioId,
                 paginacao
         );
         return ResponseEntity.ok(resultado);

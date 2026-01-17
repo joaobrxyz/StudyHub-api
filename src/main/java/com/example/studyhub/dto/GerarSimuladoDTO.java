@@ -11,5 +11,8 @@ public record GerarSimuladoDTO(
         List<String> disciplinas,
         List<String> dificuldades,
         List<String> instituicoes,
-        List<String> anos
+        List<String> anos,
+        Boolean apenasErros,
+        Boolean comResolucao,
+        Boolean comVideo
 ) {}
